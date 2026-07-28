@@ -61,16 +61,16 @@ línea por línea directamente desde el ZIP.
 Requiere Python 3.10+.
 
 ```powershell
-pip install peru-ruc-mcp
+pip install mcp-sunat
 ```
 
 O sin instalar nada, directo desde PyPI:
 
 ```powershell
-uvx peru-ruc-mcp
+uvx mcp-sunat
 ```
 
-> El paquete se publica como **`peru-ruc-mcp`**; el módulo que se importa es
+> El paquete se publica como **`mcp-sunat`**; el módulo que se importa es
 > `sunat_mcp` y el repositorio se llama `sunat-mcp`. Es la misma distinción que
 > entre `pillow` y `PIL`.
 

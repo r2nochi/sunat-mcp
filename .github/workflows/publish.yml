@@ -5,7 +5,10 @@
 # Un token filtrado es una credencial permanente; un token OIDC vive segundos.
 #
 # Publicador configurado en pypi.org (Publishing > pending publisher):
-#     PyPI Project Name: peru-ruc-mcp   <- debe coincidir con pyproject.toml
+#     PyPI Project Name: mcp-sunat   <- DEBE coincidir con `name` en
+#                                       pyproject.toml. Si no coinciden, la
+#                                       subida falla con "400 Non-user
+#                                       identities cannot create new projects".
 #     Owner:             r2nochi
 #     Repository name:   sunat-mcp
 #     Workflow name:     publish.yml
