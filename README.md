@@ -5,6 +5,13 @@ oficial de SUNAT**, indexado localmente.
 
 Los RUCs que consultas **no salen de tu máquina**.
 
+![sunat-mcp resolviendo consultas reales](demo/sunat-mcp.gif)
+
+> El GIF no es una recreación: `demo/record.py` levanta el servidor por stdio con el
+> cliente oficial de MCP, llama a las herramientas y anima **las respuestas que
+> realmente devuelve** sobre el índice local. Si el índice no existe, aborta en vez de
+> inventar datos.
+
 ## El problema
 
 Todo estudio contable peruano valida RUCs a diario: verificar que una factura tenga un
@@ -52,6 +59,18 @@ línea por línea directamente desde el ZIP.
 ## Instalación
 
 Requiere Python 3.10+.
+
+```powershell
+pip install sunat-mcp
+```
+
+O sin instalar nada, directo desde PyPI:
+
+```powershell
+uvx sunat-mcp
+```
+
+Para trabajar sobre el código o construir el índice:
 
 ```powershell
 git clone https://github.com/r2nochi/sunat-mcp
@@ -157,9 +176,11 @@ en columnas equivocadas.
 
 Léelos antes de confiar en el resultado:
 
-- **El padrón es una foto, no un servicio en vivo.** SUNAT lo publica periódicamente. Un
-  RUC creado o dado de baja después de tu última ingesta **no se refleja**. Consulta
-  `estado_padron` para ver la fecha.
+- **El padrón es una foto, no un servicio en vivo.** SUNAT lo publica **a diario**: entre
+  el 27 y el 28 de julio de 2026 el archivo pasó de 389,882,157 a 389,923,097 bytes. Un
+  RUC creado o dado de baja después de tu última ingesta **no se refleja**. Por eso
+  `estado_padron` expone el `Last-Modified` y el `sha256` del ZIP concreto que se ingirió:
+  no basta con saber que consultaste "el padrón", hay que saber **cuál**.
 - **`validar_ruc` solo comprueba aritmética.** Un RUC con dígito verificador correcto
   puede no existir. Son preguntas distintas.
 - **El Padrón Reducido no trae todo.** No incluye representantes legales, actividad

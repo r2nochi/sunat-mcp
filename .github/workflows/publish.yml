@@ -1,0 +1,63 @@
+# Publica en PyPI al crear un release en GitHub.
+#
+# Usa Trusted Publishing (OIDC): PyPI confia en este repositorio y este
+# workflow, asi que NO hay que guardar ningun token de API en los secretos.
+# Un token filtrado es una credencial permanente; un token OIDC vive segundos.
+#
+# Configuracion previa, una sola vez, en pypi.org:
+#   Your projects > Publishing > Add a new pending publisher
+#     PyPI Project Name: sunat-mcp
+#     Owner:             r2nochi
+#     Repository name:   sunat-mcp
+#     Workflow name:     publish.yml
+#     Environment name:  pypi
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,ingest]"
+      # No se publica nada que no pase las pruebas.
+      - run: pytest -q
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # requerido por Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
