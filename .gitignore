@@ -1,0 +1,23 @@
+# El indice y el padron se generan localmente: nunca al repo.
+data/*.zip
+data/*.sqlite3
+data/*.txt
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Directorios de trabajo de agentes
+/.codex
+/.superpowers
+/.claude
