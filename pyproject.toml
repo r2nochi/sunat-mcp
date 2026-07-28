@@ -3,7 +3,10 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sunat-mcp"
+# Nombre de DISTRIBUCION (lo que se instala con pip). El modulo que se importa
+# sigue siendo `sunat_mcp`, igual que pillow instala PIL. El repositorio
+# tambien conserva el nombre sunat-mcp.
+name = "peru-ruc-mcp"
 version = "0.1.0"
 description = "Servidor MCP para validar y consultar RUCs peruanos sobre el Padron Reducido oficial de SUNAT, sin salir de tu maquina."
 readme = "README.md"
@@ -47,7 +50,9 @@ dev = [
 ]
 
 [project.scripts]
-sunat-mcp = "sunat_mcp.server:main"
+# El ejecutable lleva el mismo nombre que la distribucion para que
+# `uvx peru-ruc-mcp` funcione sin argumentos extra.
+peru-ruc-mcp = "sunat_mcp.server:main"
 
 [tool.setuptools.packages.find]
 include = ["sunat_mcp*"]

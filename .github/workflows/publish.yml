@@ -4,9 +4,8 @@
 # workflow, asi que NO hay que guardar ningun token de API en los secretos.
 # Un token filtrado es una credencial permanente; un token OIDC vive segundos.
 #
-# Configuracion previa, una sola vez, en pypi.org:
-#   Your projects > Publishing > Add a new pending publisher
-#     PyPI Project Name: sunat-mcp
+# Publicador configurado en pypi.org (Publishing > pending publisher):
+#     PyPI Project Name: peru-ruc-mcp   <- debe coincidir con pyproject.toml
 #     Owner:             r2nochi
 #     Repository name:   sunat-mcp
 #     Workflow name:     publish.yml
