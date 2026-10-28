@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # sigue siendo `sunat_mcp`, igual que pillow instala PIL. El repositorio
 # tambien conserva el nombre sunat-mcp.
 name = "mcp-sunat"
-version = "0.1.0"
+version = "0.1.1"
 description = "Servidor MCP para validar y consultar RUCs peruanos sobre el Padron Reducido oficial de SUNAT, sin salir de tu maquina."
 readme = "README.md"
 requires-python = ">=3.10"

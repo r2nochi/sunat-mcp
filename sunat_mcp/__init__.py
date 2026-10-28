@@ -2,7 +2,7 @@
 
 from sunat_mcp.ruc import ResultadoValidacion, digito_verificador, es_valido, validar
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "ResultadoValidacion",
