@@ -32,7 +32,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.2",
+    # mcp 2.x renombro FastMCP (mcp.server.fastmcp ya no existe); sin este
+    # tope una instalacion nueva resuelve 2.x y el servidor no arranca.
+    "mcp>=1.2,<2",
 ]
 
 [project.urls]

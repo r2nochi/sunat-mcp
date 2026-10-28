@@ -39,7 +39,7 @@ Padrón Reducido oficial (ZIP, ~372 MiB)
 data/padron.sqlite3 — índice local, consulta por clave primaria
         │
         ▼
-sunat_mcp/server.py — 4 herramientas MCP  →  Claude Code / Claude Desktop
+sunat_mcp/server.py — 5 herramientas MCP  →  Claude Code / Claude Desktop
 ```
 
 La ingesta **nunca carga el archivo completo en memoria**: lee el `.txt` de 1.56 GB
@@ -52,6 +52,7 @@ línea por línea directamente desde el ZIP.
 | `validar_ruc` | Estructura, prefijo y dígito verificador (módulo 11 SUNAT) | No | No |
 | `consultar_ruc` | Razón social, estado, condición de domicilio, ubigeo, dirección | Sí | No |
 | `buscar_razon_social` | Contribuyentes cuyo nombre coincide | Sí | No |
+| `revisar_proveedores` | Hasta 500 RUCs en una llamada: ok / observado / inválido / no encontrado, con la fecha del padrón | Sí | No |
 | `estado_padron` | Fuente, SHA-256, fecha de SUNAT, fecha de ingesta, nº de registros | Sí | No |
 
 `validar_ruc` funciona **sin haber construido el índice**: es aritmética pura.
@@ -92,7 +93,7 @@ python -m venv .venv
 Descarga el ZIP oficial, verifica su checksum y construye el índice.
 
 > **Ten en cuenta:** descarga ~372 MiB y el índice resultante ocupa varios GB en disco.
-> Es una operación de una sola vez; para actualizar, vuelve a correrlo.
+> Es una operación de una sola vez. Para actualizar, córrelo con `--forzar-descarga`: sin esa opción reutiliza el ZIP ya descargado.
 
 Para probar sin bajar todo el padrón:
 

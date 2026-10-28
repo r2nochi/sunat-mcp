@@ -46,8 +46,12 @@ def digito_verificador(ruc_base: str) -> int:
 
 
 def normalizar(ruc: str) -> str:
-    """Quita espacios, puntos y guiones. No valida nada."""
-    return "".join(c for c in ruc if c.isdigit())
+    """Quita espacios, puntos y guiones. No valida nada.
+
+    Solo conserva digitos ASCII: `str.isdigit()` acepta tambien '²' o digitos
+    de ancho completo, que luego rompen `int()` o nunca coinciden con el padron.
+    """
+    return "".join(c for c in ruc if c in "0123456789")
 
 
 def validar(ruc: str) -> ResultadoValidacion:

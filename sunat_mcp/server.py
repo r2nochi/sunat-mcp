@@ -12,6 +12,7 @@ import sqlite3
 from mcp.server.fastmcp import FastMCP
 
 from sunat_mcp import padron as p
+from sunat_mcp import revision as rv
 from sunat_mcp.ruc import validar
 
 mcp = FastMCP(
@@ -20,7 +21,8 @@ mcp = FastMCP(
         "Valida y consulta RUCs peruanos contra el Padron Reducido oficial de "
         "SUNAT, indexado localmente. Usa validar_ruc para comprobar si un RUC "
         "esta bien formado (no requiere indice) y consultar_ruc para obtener "
-        "razon social, estado y condicion de domicilio."
+        "razon social, estado y condicion de domicilio. Para una lista de "
+        "proveedores usa revisar_proveedores en una sola llamada."
     ),
 )
 
@@ -119,6 +121,56 @@ def buscar_razon_social(texto: str, limite: int = 10) -> dict:
             "SUNAT. No hay busqueda semantica ni correccion de errores de tipeo."
             if encontrados
             else "Sin coincidencias. Prueba con menos palabras o con '%' al inicio."
+        ),
+    }
+
+
+@mcp.tool()
+def revisar_proveedores(rucs: list[str | int]) -> dict:
+    """Revisa en una sola llamada una lista de RUCs de proveedores (hasta 500).
+
+    Cada RUC queda como `ok` (ACTIVO y HABIDO), `observado` (cualquier otro
+    estado o condicion de domicilio, con el valor exacto del padron),
+    `invalido` (mal formado) o `no_encontrado`. Quita duplicados y conserva el
+    orden. Incluye la fecha del padron consultado: el resultado vale para esa
+    foto, no para hoy.
+    """
+    # Los RUCs leidos de un Excel suelen llegar como numeros.
+    unicos, duplicados = rv.preparar([str(r) for r in rucs])
+    if len(unicos) > rv.MAX_RUCS:
+        return {
+            "error": (
+                f"Se recibieron {len(unicos)} RUCs unicos; el maximo por llamada "
+                f"es {rv.MAX_RUCS}. Divide la lista en partes."
+            )
+        }
+
+    try:
+        con = _indice()
+    except p.PadronNoDisponible as e:
+        return {"error": str(e)}
+
+    revisiones = rv.revisar(con, unicos)
+    resumen = {k: 0 for k in (rv.OK, rv.OBSERVADO, rv.INVALIDO, rv.NO_ENCONTRADO)}
+    for r in revisiones:
+        resumen[r.resultado] += 1
+
+    prov = p.provenance(con)
+    return {
+        "padron": {
+            "last_modified_sunat": prov.get("last_modified_sunat"),
+            "fecha_ingesta_utc": prov.get("fecha_ingesta_utc"),
+            "sha256_zip": prov.get("sha256_zip"),
+            "muestra_parcial": prov.get("muestra_parcial") == "si",
+        },
+        "total_revisados": len(revisiones),
+        "duplicados_omitidos": duplicados,
+        "resumen": resumen,
+        "resultados": [r.to_dict() for r in revisiones],
+        "nota": (
+            "Foto del Padron Reducido en la fecha indicada, no del dia de hoy. "
+            "No es asesoria tributaria: antes de basar una decision en este "
+            "resultado, verifica al proveedor en el portal oficial de SUNAT."
         ),
     }
 

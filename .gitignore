@@ -2,6 +2,7 @@
 data/*.zip
 data/*.sqlite3
 data/*.txt
+data/*.last-modified
 
 # Python
 .venv/

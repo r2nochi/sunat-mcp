@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from sunat_mcp import padron as p
+from sunat_mcp import revision as rv
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -39,6 +40,12 @@ FILAS = [
     # El padron real trae algunas razones sociales en minuscula. Si el indice
     # comparara en binario, esta fila se perderia en silencio.
     "20555888991|Comercial Minuscula S.A.C.|ACTIVO|HABIDO|150101|-|-|-|-|-|-|-|-|-|-|",
+    # RUCs con digito verificador correcto para la revision de proveedores
+    # (el de TEXTILES DEL SUR no lo tiene y la revision lo marca invalido).
+    "20600000005|DISTRIBUIDORA CERRADA S.A.C.|BAJA DE OFICIO|HABIDO|150101|-|-|-|-|-|-|-|-|-|-|",
+    "20600000013|SERVICIOS FANTASMA S.R.L.|ACTIVO|NO HABIDO|150101|-|-|-|-|-|-|-|-|-|-|",
+    # Estado y condicion ausentes ('-'): nunca deben contar como ok.
+    "20600000048|SIN DATOS S.A.C.|-|-|-|-|-|-|-|-|-|-|-|-|-|",
 ]
 
 
@@ -195,6 +202,87 @@ class TestBusquedaIgnoraMayusculas:
         assert len(prov["sha256_zip"]) == 64
         assert prov["registros"] == str(len(FILAS))
         assert "fecha_ingesta_utc" in prov
+        # Un ZIP reutilizado sin fecha guardada no recibe la fecha que SUNAT
+        # informa hoy: eso sellaria datos viejos como actuales.
+        assert prov["last_modified_sunat"] == "desconocido"
+
+
+class TestRevisionProveedores:
+    def test_preparar_quita_duplicados_y_vacios_conservando_orden(self):
+        unicos, dup = rv.preparar(["20600000013", " ", "20123456786", "20.600.000.013"])
+        assert unicos == ["20600000013", "20123456786"]
+        assert dup == 1
+
+    def test_clasifica_cada_caso(self, indice: Path):
+        con = p.conectar(indice)
+        r = {
+            x.ruc: x
+            for x in rv.revisar(
+                con,
+                ["20123456786", "20600000005", "20600000013", "20987654321", "20600000021"],
+            )
+        }
+        assert r["20123456786"].resultado == rv.OK
+        assert r["20123456786"].motivos == []
+        assert r["20600000005"].resultado == rv.OBSERVADO
+        assert r["20600000005"].motivos == ["Estado: BAJA DE OFICIO"]
+        assert r["20600000013"].resultado == rv.OBSERVADO
+        assert r["20600000013"].motivos == ["Condicion de domicilio: NO HABIDO"]
+        assert r["20987654321"].resultado == rv.INVALIDO
+        assert r["20600000021"].resultado == rv.NO_ENCONTRADO
+
+    def test_valor_desconocido_nunca_cuenta_como_ok(self, indice: Path):
+        """Lista blanca: un estado que no sea exactamente ACTIVO queda observado."""
+        con = p.conectar(indice)
+        assert rv.revisar(con, ["20100047218"])[0].resultado == rv.OK
+        assert all(x.resultado != rv.OK for x in rv.revisar(con, ["20600000005", "20600000013"]))
+
+    def test_herramienta_mcp_resume_y_expone_fecha_del_padron(self, indice: Path, monkeypatch):
+        from sunat_mcp import server
+
+        monkeypatch.setenv("SUNAT_MCP_DB", str(indice))
+        monkeypatch.setattr(server, "_con", None)
+        out = server.revisar_proveedores(
+            ["20123456786", "20123456786", "20600000013", "123"]
+        )
+        assert out["duplicados_omitidos"] == 1
+        assert out["total_revisados"] == 3
+        assert out["resumen"] == {"ok": 1, "observado": 1, "invalido": 1, "no_encontrado": 0}
+        assert [x["ruc"] for x in out["resultados"]] == ["20123456786", "20600000013", "123"]
+        assert len(out["padron"]["sha256_zip"]) == 64
+        assert "fecha_ingesta_utc" in out["padron"]
+
+    def test_entrada_sin_digitos_se_reporta_invalida_no_se_pierde(self):
+        unicos, dup = rv.preparar(["N/A", "", "  ", "20123456786", "N/A"])
+        assert unicos == ["N/A", "20123456786"]
+        assert dup == 1
+        r = rv.revisar_uno(None, "N/A")
+        assert r.resultado == rv.INVALIDO
+
+    def test_digitos_no_ascii_no_rompen_el_lote(self):
+        """'2' superindice pasa str.isdigit() pero rompe int(); debe ignorarse."""
+        assert rv.revisar_uno(None, "2012345678²").resultado == rv.INVALIDO
+        assert rv.revisar_uno(None, "２０123456786").resultado == rv.INVALIDO
+
+    def test_estado_sin_dato_queda_observado(self, indice: Path):
+        r = rv.revisar(p.conectar(indice), ["20600000048"])[0]
+        assert r.resultado == rv.OBSERVADO
+        assert r.motivos == ["Estado: sin dato", "Condicion de domicilio: sin dato"]
+
+    def test_herramienta_mcp_acepta_rucs_numericos(self, indice: Path, monkeypatch):
+        from sunat_mcp import server
+
+        monkeypatch.setenv("SUNAT_MCP_DB", str(indice))
+        monkeypatch.setattr(server, "_con", None)
+        out = server.revisar_proveedores([20123456786])
+        assert out["resumen"]["ok"] == 1
+
+    def test_herramienta_mcp_rechaza_listas_demasiado_grandes(self, monkeypatch):
+        from sunat_mcp import server
+
+        rucs = [f"20{i:09d}" for i in range(rv.MAX_RUCS + 1)]
+        out = server.revisar_proveedores(rucs)
+        assert "maximo" in out["error"]
 
 
 class TestErroresClaros:

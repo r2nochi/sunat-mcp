@@ -213,16 +213,28 @@ def main() -> int:
     p.add_argument("--forzar-descarga", action="store_true")
     args = p.parse_args()
 
+    # La fecha de publicacion se guarda junto al ZIP al descargarlo. Al
+    # reutilizar un ZIP viejo NO se le pone la fecha que SUNAT informa hoy:
+    # eso sellaria datos atrasados como si fueran del dia.
+    fecha_zip = args.zip.with_name(args.zip.name + ".last-modified")
+
     last_modified = None
     if args.forzar_descarga or not args.zip.exists():
         last_modified = descargar(args.zip)
+        if last_modified:
+            fecha_zip.write_text(last_modified, encoding="utf-8")
+        elif fecha_zip.exists():
+            fecha_zip.unlink()
     else:
         print(f"Reutilizando {args.zip} ({args.zip.stat().st_size / 1e6:.0f} MB)")
-        last_modified = consultar_last_modified()
-        if last_modified:
-            print(f"  SUNAT informa Last-Modified: {last_modified}")
-        else:
-            print("  No se pudo consultar la fecha de SUNAT (sin red).")
+        if fecha_zip.exists():
+            last_modified = fecha_zip.read_text(encoding="utf-8").strip() or None
+        actual = consultar_last_modified()
+        if actual and actual != last_modified:
+            print(
+                f"  AVISO: SUNAT publica una version del {actual}; este ZIP es del "
+                f"{last_modified or 'fecha desconocida'}. Para actualizar usa --forzar-descarga."
+            )
 
     n = construir(args.zip, args.db, args.limite, last_modified)
     tam = args.db.stat().st_size / 1e9
